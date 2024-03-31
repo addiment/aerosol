@@ -9,7 +9,7 @@ No-nonsense Twitch chat overlay that I use as an OBS browser source, Creative Co
 
 # Customization
 
-If you're good with CSS, you should be fine. I reccommend reviewing the CSS in the index. Chat lines are stored in `div#chat-box`. Chat line markup looks like this:
+If you're good with CSS, you should be fine. I recommend reviewing the CSS in `index.html`. Individual chat messages are stored in `div#chat-box`. Chat message markup looks like this:
 
 ```html
 <div class="chat-line" data-nick="addiment_lc" data-time="4294967295" data-id="00000000-0000-0000-0000-000000000000">
