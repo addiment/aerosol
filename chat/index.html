@@ -93,7 +93,7 @@
 
 		.emote {
 			margin: 0;
-			vertical-align: baseline;
+			vertical-align: bottom;
 		}
 
 		@keyframes anim_new_message {
@@ -120,9 +120,8 @@
 			<div class="badge-box">
 				<img class="badge" src="https://static-cdn.jtvnw.net/badges/v1/5527c58c-fb7d-422d-b71b-f309dcb85cc1/3">
 			</div>
-			<span class="nick" style="color: #ff1040;">addiment_lc</span>
-			<span class="separator"></span>
-			<span class="message"></span>
+			<span class="nick" style="color: #ff1040;">addiment_lc</span><span class="separator"></span><span
+				class="message"></span>
 		</div>
 	</div>
 </body>
@@ -130,7 +129,7 @@
 <script>
 
 	// TODO: give off-screen messages a 30s lifetime
-	// TODO: fix emotes (need token)
+	// TODO: implement BTTV/FFZ
 	// TODO: fix badges (need token)
 
 	const TWITCH_SOCKET_SERVER = "wss://irc-ws.chat.twitch.tv:443";
@@ -145,6 +144,19 @@
 	}
 
 	console.log(`aerosol joining chat: ${channel}`)
+
+	/**
+	 * @param {string} str
+	 * @returns {string}
+	 * @deprecated only use this if __necessary__
+	 */
+	function sanitize(str) {
+		let out = str
+			.replace("&", "&amp;") // amp has to come first, lest we break the other escapes
+			.replace("<", "&lt;")
+			.replace(">", "&gt;");
+		return out;
+	}
 
 	/**
 	 * Parses an IRC message and returns a JSON object with the message's 
@@ -325,6 +337,7 @@
 		commandParts = rawCommandComponent.split(' ');
 
 		switch (commandParts[0]) {
+			case 'CLEARMSG':
 			case 'JOIN':
 			case 'PART':
 			case 'NOTICE':
@@ -412,11 +425,19 @@
 		}
 	}
 
+	/** @type {WebSocket} */
+	let socket;
+	let username = `justinfan${Math.round(Math.random() * 99999)}`;
+
+	function sendIrc(command) {
+		socket?.send(command);
+	}
+
 	async function main() {
 
 		const chatbox = document.getElementById("chat-box");
 
-		let socket = new WebSocket(TWITCH_SOCKET_SERVER);
+		socket = new WebSocket(TWITCH_SOCKET_SERVER);
 
 		/** @param {WebSocket} sock*/
 		function init(sock) {
@@ -424,9 +445,10 @@
 			// did you know?
 			sock.send("PASS hunter2\r\n");
 			// magic username that allows us to log in anonymously
-			sock.send(`NICK justinfan${Math.round(Math.random() * 99999)}\r\n`)
+			sock.send(`NICK ${username}\r\n`)
+			sock.send(`USER ${username} 8 * :${username}\r\n`)
 			// ask for detailed twitch tags
-			sock.send("CAP REQ :twitch.tv/commands twitch.tv/tags\r\n");
+			sock.send("CAP REQ :twitch.tv/tags twitch.tv/commands\r\n");
 			sock.send(`JOIN #${channel}\r\n`)
 		}
 
@@ -436,7 +458,9 @@
 		});
 
 		socket.addEventListener('message', ev => {
+
 			// code can't break if you wrap it all in a try-catch :)
+			// ^ this is a joke, if it wasn't apparent
 			try {
 				/** @type {string} */
 				const msg = ev.data;
@@ -455,14 +479,16 @@
 								break;
 							}
 							case "CLEARCHAT": {
-								// TODO: clear all messages from html
+								const queryRes = document.querySelectorAll(`.chat-line`);
+								queryRes.forEach(e => { e.remove() });
 								break;
 							}
 							case "CLEARMSG": {
-								// TODO: find a specific message and get rid of it
+								document.querySelector(`[data-id="${obj.tags["target-msg-id"]}"]`).remove();
 								break;
 							}
 							case "PRIVMSG": {
+								/** @type {HTMLDivElement} */
 								let nNode = document.createElement('div');
 								const messageText = obj.parameters;
 								const nick = obj.source.nick;
@@ -470,11 +496,50 @@
 								nNode.classList.add('chat-line');
 								nNode.setAttribute('data-nick', nick);
 								nNode.setAttribute('data-id', messageId);
-								nNode.setAttribute('data-id', messageId);
 								nNode.innerHTML = `<div class="badge-box"></div><span class="nick"${obj?.tags?.color ? 'style="color: ' + obj.tags.color + ';"' : ''}></span><span class="separator"></span><span class="message"></span>`;
 								// avoid injection
 								nNode.querySelector('.nick').innerText = nick;
-								nNode.querySelector('.message').innerText = messageText;
+
+								/** @type {HTMLSpanElement} */
+								const messageElement = nNode.querySelector(".message");
+
+								const emotes = obj.tags.emotes;
+
+								if (emotes !== null) {
+									console.log("message has emotes");
+									const emoteKeys = Object.keys(emotes);
+									/** @type { { id: string, start: number, end: number }[] } */
+									const allEmotes = [];
+
+									allEmotes.sort((a, b) => a.start - b.start);
+									console.log(allEmotes);
+
+									for (const eKey of emoteKeys) {
+										const emote = emotes[eKey];
+										for (const eInst of emote) {
+											// type coercion is annoying
+											allEmotes.push({ id: eKey, start: +eInst.startPosition, end: +eInst.endPosition })
+										}
+									}
+
+									console.log(messageText);
+
+									messageElement.insertAdjacentText("beforeend", messageText.slice(0, allEmotes[0].start));
+
+									for (let i = 0; i < allEmotes.length; i++) {
+										const emote = allEmotes[i];
+										const nextEmote = allEmotes[i + 1];
+
+										const img = document.createElement("img");
+										img.classList.add("emote");
+										img.src = `https://static-cdn.jtvnw.net/emoticons/v2/${emote.id}/default/dark/1.0`;
+										messageElement.insertAdjacentElement("beforeend", img);
+										messageElement.insertAdjacentText("beforeend", messageText.slice(emote.end + 1, nextEmote?.start || messageText.length));
+									}
+
+								} else {
+									messageElement.innerText = messageText;
+								}
 								// TODO: badges
 								chatbox.appendChild(nNode);
 								chatbox.scrollTop = chatbox.scrollHeight
