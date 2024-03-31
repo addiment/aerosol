@@ -1,6 +1,6 @@
 # aerosol
 
-No-nonsense Twitch chat overlay that I use as an OBS browser source.
+No-nonsense Twitch chat overlay that I use as an OBS browser source, Creative Commons licensed.
 
 # Getting Started in [OBS Studio](https://obsproject.com/)
 
@@ -13,10 +13,10 @@ If you're good with CSS, you should be fine. I reccommend reviewing the CSS in t
 
 ```html
 <div class="chat-line" data-nick="addiment_lc" data-time="4294967295" data-id="00000000-0000-0000-0000-000000000000">
- <div class="badge-box">
-  <img class="badge">
- </div>
-	 <span class="nick" style="color: #ff1040;">addiment_lc</span><span class="separator"></span><span class="message">test message! <img class="emote"></span>
+	<div class="badge-box">
+		<img class="badge">
+	</div>
+	<span class="nick" style="color: #ff1040;">addiment_lc</span><span class="separator"></span><span class="message">test message! <img class="emote"></span>
 </div>
 ```
 
