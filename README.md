@@ -5,7 +5,7 @@ No-nonsense Twitch chat overlay that I use as an OBS browser source, Creative Co
 # Getting Started in [OBS Studio](https://obsproject.com/)
 
 1. Create a browser source, and position/size it however you'd like. Personally, I like 400x600 px, and that's where I've tested it.
-2. Set the URL to `https://addiment.github.io/aerosol/chat/?channel=<CHANNEL>`, and change &gt;CHANNEL&lt; to the name of the channel you want to display.
+2. Set the URL to `https://addiment.github.io/aerosol/chat/?channel=<CHANNEL>`, and change &lt;CHANNEL&gt; to the name of the channel you want to display.
 
 # Customization
 
